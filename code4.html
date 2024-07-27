@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Martini Glass Narrative</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .overview, .focus, .conclusion {
+            margin: 20px 0;
+        }
+        .axis path, .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .highlight {
+            fill: red;
+            stroke: black;
+        }
+        .controls {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="overview">
+        <h2>Overview: Average MPG Across Manufacturers</h2>
+        <svg width="800" height="400"></svg>
+    </div>
+    <div class="focus">
+        <h2>Focus: High Efficiency Cars</h2>
+        <svg width="800" height="400"></svg>
+    </div>
+    <div class="conclusion">
+        <h2>Conclusion: Trends and Takeaways</h2>
+        <div class="controls">
+            <label for="cityMPGRange">City MPG:</label>
+            <input type="range" id="cityMPGRange" name="cityMPGRange" min="0" max="50" value="0" step="1">
+            <span id="cityMPGValue">0</span>
+
+            <label for="highwayMPGRange">Highway MPG:</label>
+            <input type="range" id="highwayMPGRange" name="highwayMPGRange" min="0" max="50" value="0" step="1">
+            <span id="highwayMPGValue">0</span>
+        </div>
+        <svg width="800" height="400"></svg>
+    </div>
+
+    <script>
+        var margin = {top: 20, right: 30, bottom: 30, left: 40},
+            width = 800 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        d3.csv("https://flunky.github.io/cars2017.csv").then(function(data) {
+            data.forEach(function(d) {
+                d.AverageCityMPG = +d.AverageCityMPG;
+                d.AverageHighwayMPG = +d.AverageHighwayMPG;
+                d.Cylinders = +d.Cylinders;
+            });
+
+            var overviewSvg = d3.select(".overview svg")
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xOverview = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageCityMPG; })])
+                .range([0, width]);
+
+            var yOverview = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageHighwayMPG; })])
+                .range([height, 0]);
+
+            overviewSvg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xOverview));
+
+            overviewSvg.append("g")
+                .call(d3.axisLeft(yOverview));
+
+            overviewSvg.selectAll("circle")
+                .data(data)
+                .enter().append("circle")
+                .attr("cx", function(d) { return xOverview(d.AverageCityMPG); })
+                .attr("cy", function(d) { return yOverview(d.AverageHighwayMPG); })
+                .attr("r", 3);
+
+            var focusData = data.filter(function(d) { return d.AverageCityMPG > 30; });
+
+            var focusSvg = d3.select(".focus svg")
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xFocus = d3.scaleLinear()
+                .domain([d3.min(focusData, function(d) { return d.AverageCityMPG; }) || 0, d3.max(focusData, function(d) { return d.AverageCityMPG; }) || 50])
+                .range([0, width]);
+
+            var yFocus = d3.scaleLinear()
+                .domain([d3.min(focusData, function(d) { return d.AverageHighwayMPG; }) || 0, d3.max(focusData, function(d) { return d.AverageHighwayMPG; }) || 50])
+                .range([height, 0]);
+
+            focusSvg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xFocus));
+
+            focusSvg.append("g")
+                .call(d3.axisLeft(yFocus));
+
+            focusSvg.selectAll("circle")
+                .data(focusData)
+                .enter().append("circle")
+                .attr("cx", function(d) { return xFocus(d.AverageCityMPG); })
+                .attr("cy", function(d) { return yFocus(d.AverageHighwayMPG); })
+                .attr("r", 5)
+                .attr("class", "highlight");
+
+            var conclusionSvg = d3.select(".conclusion svg")
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xConclusion = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageCityMPG; })])
+                .range([0, width]);
+
+            var yConclusion = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageHighwayMPG; })])
+                .range([height, 0]);
+
+            conclusionSvg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xConclusion));
+
+            conclusionSvg.append("g")
+                .call(d3.axisLeft(yConclusion));
+
+            var updateConclusion = function() {
+                var cityMPGValue = +d3.select("#cityMPGRange").node().value;
+                var highwayMPGValue = +d3.select("#highwayMPGRange").node().value;
+
+                d3.select("#cityMPGValue").text(cityMPGValue);
+                d3.select("#highwayMPGValue").text(highwayMPGValue);
+
+                var filteredData = data.filter(function(d) {
+                    return d.AverageCityMPG >= cityMPGValue && d.AverageHighwayMPG >= highwayMPGValue;
+                });
+
+                var circles = conclusionSvg.selectAll("circle")
+                    .data(filteredData);
+
+                circles.exit().remove();
+
+                circles.enter().append("circle")
+                    .merge(circles)
+                    .attr("cx", function(d) { return xConclusion(d.AverageCityMPG); })
+                    .attr("cy", function(d) { return yConclusion(d.AverageHighwayMPG); })
+                    .attr("r", 3);
+            };
+
+            d3.select("#cityMPGRange").on("input", updateConclusion);
+            d3.select("#highwayMPGRange").on("input", updateConclusion);
+
+            updateConclusion();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Martini Glass Narrative</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .overview, .focus, .conclusion {
+            margin: 20px 0;
+        }
+        .axis path, .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .highlight {
+            fill: red;
+            stroke: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="overview">
+        <h2>Overview: Average MPG Across Manufacturers</h2>
+        <svg width="800" height="400"></svg>
+    </div>
+    <div class="focus">
+        <h2>Focus: High Efficiency Cars</h2>
+        <svg width="800" height="400"></svg>
+    </div>
+    <div class="conclusion">
+        <h2>Conclusion: Trends and Takeaways</h2>
+        <label for="mpgSlider">Minimum City MPG:</label>
+        <input type="range" id="mpgSlider" name="mpgSlider" min="0" max="60" value="0" oninput="updateConclusion()">
+        <span id="mpgValue">0</span>
+        <svg width="800" height="400"></svg>
+    </div>
+    <script>
+        // Set up the dimensions and margins for the SVG containers
+        var margin = {top: 20, right: 30, bottom: 30, left: 40},
+            width = 800 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        // Load the data
+        d3.csv("https://flunky.github.io/cars2017.csv").then(function(data) {
+
+            // Convert necessary data to numeric
+            data.forEach(function(d) {
+                d.AverageCityMPG = +d.AverageCityMPG;
+                d.AverageHighwayMPG = +d.AverageHighwayMPG;
+                d.Cylinders = +d.Cylinders;
+            });
+
+            // Create the overview visualization
+            var overviewSvg = d3.select(".overview svg")
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xOverview = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageCityMPG; })])
+                .range([0, width]);
+
+            var yOverview = d3.scaleLinear()
+                .domain([0, d3.max(data, function(d) { return d.AverageHighwayMPG; })])
+                .range([height, 0]);
+
+            overviewSvg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xOverview));
+
+            overviewSvg.append("g")
+                .call(d3.axisLeft(yOverview));
+
+            overviewSvg.selectAll("circle")
+                .data(data)
+                .enter().append("circle")
+                .attr("cx", function(d) { return xOverview(d.AverageCityMPG); })
+                .attr("cy", function(d) { return yOverview(d.AverageHighwayMPG); })
+                .attr("r", 3);
+
+            // Create the focus visualization
+            var focusData = data.filter(function(d) { return d.AverageCityMPG > 30; });
+
+            var focusSvg = d3.select(".focus svg")
+                .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            var xFocus = d3.scaleLinear()
+                .domain([d3.min(focusData, function(d) { return d.AverageCityMPG; }), d3.max(focusData, function(d) { return d.AverageCityMPG; })])
+                .range([0, width]);
+
+            var yFocus = d3.scaleLinear()
+                .domain([d3.min(focusData, function(d) { return d.AverageHighwayMPG; }), d3.max(focusData, function(d) { return d.AverageHighwayMPG; })])
+                .range([height, 0]);
+
+            console.log("xFocus domain:", xFocus.domain());
+            console.log("yFocus domain:", yFocus.domain());
+
+            focusSvg.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(xFocus));
+
+            focusSvg.append("g")
+                .call(d3.axisLeft(yFocus));
+
+            focusSvg.selectAll("circle")
+                .data(focusData)
+                .enter().append("circle")
+                .attr("cx", function(d) { return xFocus(d.AverageCityMPG); })
+                .attr("cy", function(d) { return yFocus(d.AverageHighwayMPG); })
+                .attr("r", 3)
+                .attr("class", "highlight");
+            });
+            
+            function updateConclusion() {
+                var sliderValue = document.getElementById('mpgSlider').value;
+                document.getElementById('mpgValue').textContent = sliderValue;
+
+                var filteredData = data.filter(function(d) {
+                    return d.AverageCityMPG >= sliderValue;
+                });
+                var svg = d3.select(".conclusion svg");
+                svg.selectAll("*").remove();
+
+                var width = +svg.attr("width");
+                var height = +svg.attr("height");
+
+                var x = d3.scaleLinear()
+                    .domain([0, d3.max(data, function(d) { return d.AverageCityMPG; })])
+                    .range([0, width]);
+
+                var y = d3.scaleLinear()
+                    .domain([0, d3.max(data, function(d) { return d.AverageHighwayMPG; })])
+                    .range([height, 0]);
+
+                svg.append("g")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(d3.axisBottom(x));
+
+                svg.append("g")
+                    .call(d3.axisLeft(y));
+
+                svg.selectAll("circle")
+                    .data(filteredData)
+                    .enter().append("circle")
+                    .attr("cx", function(d) { return x(d.AverageCityMPG); })
+                    .attr("cy", function(d) { return y(d.AverageHighwayMPG); })
+                    .attr("r", 3);
+            }
+    </script>
+</body>
+</html>

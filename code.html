@@ -14,7 +14,6 @@
             shape-rendering: crispEdges;
         }
         .highlight {
-            fill: red;
             stroke: black;
         }
         .controls {
@@ -28,7 +27,6 @@
         }
         .annotation.visible {
             opacity: 1;
-
         }
     </style>
 </head>
@@ -60,6 +58,8 @@
             width = 800 - margin.left - margin.right,
             height = 400 - margin.top - margin.bottom;
 
+        var highEfficiencyThreshold = 30; // Define the threshold for high efficiency
+
         d3.csv("https://flunky.github.io/cars2017.csv").then(function(data) {
             data.forEach(function(d) {
                 d.AverageCityMPG = +d.AverageCityMPG;
@@ -67,6 +67,7 @@
                 d.Cylinders = +d.Cylinders;
             });
 
+            // Overview Chart
             var overviewSvg = d3.select(".overview svg")
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -91,9 +92,13 @@
                 .enter().append("circle")
                 .attr("cx", function(d) { return xOverview(d.AverageCityMPG); })
                 .attr("cy", function(d) { return yOverview(d.AverageHighwayMPG); })
-                .attr("r", 3);
+                .attr("r", 3)
+                .attr("fill", function(d) {
+                    return d.AverageCityMPG > highEfficiencyThreshold ? "green" : "red";
+                });
 
-            var focusData = data.filter(function(d) { return d.AverageCityMPG > 30; });
+            // Focus Chart
+            var focusData = data.filter(function(d) { return d.AverageCityMPG > highEfficiencyThreshold; });
 
             var focusSvg = d3.select(".focus svg")
                 .append("g")
@@ -119,7 +124,8 @@
                 .enter().append("circle")
                 .attr("cx", function(d) { return xFocus(d.AverageCityMPG); })
                 .attr("cy", function(d) { return yFocus(d.AverageHighwayMPG); })
-                .attr("r", 5)
+                .attr("r", 3)
+                .attr("fill", "green")
                 .attr("class", "highlight");
 
             var annotations = focusSvg.selectAll(".annotation")
@@ -131,13 +137,14 @@
                 .text(function(d) { return d.Make + ", " + d.Fuel + ", " + d.EngineCylinders + " cyl"; });
 
             circles.on("mouseover", function(event, d) {
-                d3.select(this).transition().attr("r", 7);
+                d3.select(this).transition().attr("r", 5);
                 d3.select(annotations.nodes()[focusData.indexOf(d)]).classed("visible", true);
             }).on("mouseout", function(event, d) {
-                d3.select(this).transition().attr("r", 5);
+                d3.select(this).transition().attr("r", 3);
                 d3.select(annotations.nodes()[focusData.indexOf(d)]).classed("visible", false);
-
             });
+
+            // Conclusion Chart
 
             var conclusionSvg = d3.select(".conclusion svg")
                 .append("g")
@@ -178,13 +185,17 @@
                     .merge(circles)
                     .attr("cx", function(d) { return xConclusion(d.AverageCityMPG); })
                     .attr("cy", function(d) { return yConclusion(d.AverageHighwayMPG); })
-                    .attr("r", 3);
+                    .attr("r", 3)
+                    .attr("fill", function(d) {
+                        return d.AverageCityMPG > highEfficiencyThreshold ? "green" : "red";
+                    });
             };
 
             d3.select("#cityMPGRange").on("input", updateConclusion);
             d3.select("#highwayMPGRange").on("input", updateConclusion);
 
-            updateConclusion();
+            updateConclusion(); // Initial call to set up the chart
+
         });
     </script>
 </body>

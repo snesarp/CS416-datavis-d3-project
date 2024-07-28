@@ -6,6 +6,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         .overview, .focus, .conclusion {
+            display: none;
             margin: 20px 0;
         }
         .axis path, .axis line {
@@ -23,49 +24,149 @@
             font-size: 10px;
             text-anchor: start;
             pointer-events: none;
-            opacity: 0; /* Initially hide annotations */
+            opacity: 0; 
         }
         .annotation.visible {
             opacity: 1;
+        }
+        .axis-label {
+            font-size: 15px;
+            font-weight: bold;
+        }
+        .button-container {
+            margin: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div class="overview">
-        <h2>Overview: Average MPG Across Manufacturers</h2>
+        <h2>Overview: Average City vs. Highway MPG Across Manufacturers in 2017</h2>
         <svg width="800" height="400"></svg>
+        <div class="button-container">
+            <button class="button" onclick="showScene('focus')">Next</button>
+        </div>
     </div>
     <div class="focus">
-        <h2>Focus: High Efficiency Cars</h2>
+        <h2>Focus: Non Electric cars Performance </h2>
         <svg width="800" height="400"></svg>
+        <div class="button-container">
+            <button class="button" onclick="showScene('overview')">Back</button>
+            <button class="button" onclick="showScene('conclusion')">Next</button>
+        </div>
     </div>
     <div class="conclusion">
-        <h2>Conclusion: Trends and Takeaways</h2>
+        <h2>Conclusion: Trends and Takeaways </h2>
         <div class="controls">
             <label for="cityMPGRange">City MPG:</label>
-            <input type="range" id="cityMPGRange" name="cityMPGRange" min="0" max="50" value="0" step="1">
+            <input type="range" id="cityMPGRange" name="cityMPGRange" min="0" max="150" value="0" step="1">
             <span id="cityMPGValue">0</span>
 
             <label for="highwayMPGRange">Highway MPG:</label>
-            <input type="range" id="highwayMPGRange" name="highwayMPGRange" min="0" max="50" value="0" step="1">
+            <input type="range" id="highwayMPGRange" name="highwayMPGRange" min="0" max="150" value="0" step="1">
             <span id="highwayMPGValue">0</span>
+
+            <label for="fueltype">Fuel Type:</label>
+            <select id="fueltype">
+                <option value = "All">All</option>
+                <option value = "Gasoline">Gasoline</option>
+                <option value = "Diesel">Diesel</option>
+                <option value = "Electricity">Electricity</option>
+            </select>
         </div>
         <svg width="800" height="400"></svg>
+        <div class="button-container">
+            <button class="button" onclick="showScene('focus')">Back</button>
+        </div>
     </div>
 
     <script>
-        var margin = {top: 20, right: 30, bottom: 30, left: 40},
+        // Function to show a specific scene and hide the others
+        function showScene(scene) {
+            document.querySelector('.overview').style.display = 'none';
+            document.querySelector('.focus').style.display = 'none';
+            document.querySelector('.conclusion').style.display = 'none';
+
+            document.querySelector('.' + scene).style.display = 'block';
+        }
+
+        // Initially show the Overview scene
+        showScene('overview');
+
+        var margin = {top: 20, right: 100, bottom: 50, left: 60},
             width = 800 - margin.left - margin.right,
             height = 400 - margin.top - margin.bottom;
 
         var highEfficiencyThreshold = 30; // Define the threshold for high efficiency
 
+        var fuelcolor = {
+            "Gasoline" : "red",
+            "Diesel"   : "blue",
+            "Electricity" : "green"
+        };
+
         d3.csv("https://flunky.github.io/cars2017.csv").then(function(data) {
             data.forEach(function(d) {
                 d.AverageCityMPG = +d.AverageCityMPG;
                 d.AverageHighwayMPG = +d.AverageHighwayMPG;
-                d.Cylinders = +d.Cylinders;
+                d.Cylinders = +d.EngineCylinders;
             });
+
+            // Function to add circles and annotations
+            function addCirclesAndAnnotations(svg, data, xScale, yScale) {
+                var circles = svg.selectAll("circle")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("cx", function(d) { return xScale(d.AverageCityMPG); })
+                    .attr("cy", function(d) { return yScale(d.AverageHighwayMPG); })
+                    .attr("r", 2)
+                    .attr("fill", function(d) {
+                    //    return d.AverageCityMPG > highEfficiencyThreshold ? "green" : "red";
+                        return fuelcolor[d.Fuel] ||  "gray";
+                    });
+
+                var annotations = svg.selectAll(".annotation")
+                    .data(data)
+                    .enter().append("text")
+                    .attr("class", "annotation")
+                    .attr("x", function(d) { return xScale(d.AverageCityMPG) + 10; })
+                    .attr("y", function(d) { return yScale(d.AverageHighwayMPG) - 10; })
+                    .text(function(d) { return d.Make + ", " + d.Fuel + ", " + d.EngineCylinders + " cyl"; });
+
+                circles.on("mouseover", function(event, d) {
+                    d3.select(this).transition().attr("r", 4);
+                    d3.select(annotations.nodes()[data.indexOf(d)]).classed("visible", true);
+
+                }).on("mouseout", function(event, d) {
+                    d3.select(this).transition().attr("r", 2);
+                    d3.select(annotations.nodes()[data.indexOf(d)]).classed("visible", false);
+
+                });
+            }
+
+            // Function to add axis labels
+            function addAxisLabels(svg, width, height, xLabel, yLabel) {
+                // X-axis label
+                svg.append("text")
+                    .attr("class", "axis-label")
+                    .attr("text-anchor", "middle")
+                    .attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom - 10) + ")")
+                    .text(xLabel);
+
+                // Y-axis label
+                svg.append("text")
+                    .attr("class", "axis-label")
+                    .attr("text-anchor", "middle")
+                    .attr("transform", "rotate(-90)")
+                    .attr("y", 0 - margin.left)
+                    .attr("x", 0 - (height / 2))
+                    .attr("dy", "1em")
+                    .text(yLabel);
+            }
 
             // Overview Chart
             var overviewSvg = d3.select(".overview svg")
@@ -84,32 +185,27 @@
                 .attr("transform", "translate(0," + height + ")")
                 .call(d3.axisBottom(xOverview));
 
+
             overviewSvg.append("g")
                 .call(d3.axisLeft(yOverview));
 
-            overviewSvg.selectAll("circle")
-                .data(data)
-                .enter().append("circle")
-                .attr("cx", function(d) { return xOverview(d.AverageCityMPG); })
-                .attr("cy", function(d) { return yOverview(d.AverageHighwayMPG); })
-                .attr("r", 3)
-                .attr("fill", function(d) {
-                    return d.AverageCityMPG > highEfficiencyThreshold ? "green" : "red";
-                });
+            addCirclesAndAnnotations(overviewSvg, data, xOverview, yOverview);
+
+            addAxisLabels(overviewSvg, width, height, "Average City MPG", "Average Highway MPG");
 
             // Focus Chart
-            var focusData = data.filter(function(d) { return d.AverageCityMPG > highEfficiencyThreshold; });
+            var focusData = data.filter(function(d) { return d.Fuel !== "Electricity"; });
 
             var focusSvg = d3.select(".focus svg")
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
             var xFocus = d3.scaleLinear()
-                .domain([d3.min(focusData, function(d) { return d.AverageCityMPG; }) || 0, d3.max(focusData, function(d) { return d.AverageCityMPG; }) || 50])
+                .domain([d3.min(focusData, function(d) { return d.AverageCityMPG; }), d3.max(focusData, function(d) { return d.AverageCityMPG; }) ])
                 .range([0, width]);
 
             var yFocus = d3.scaleLinear()
-                .domain([d3.min(focusData, function(d) { return d.AverageHighwayMPG; }) || 0, d3.max(focusData, function(d) { return d.AverageHighwayMPG; }) || 50])
+                .domain([d3.min(focusData, function(d) { return d.AverageHighwayMPG; }), d3.max(focusData, function(d) { return d.AverageHighwayMPG; }) ])
                 .range([height, 0]);
 
             focusSvg.append("g")
@@ -119,33 +215,23 @@
             focusSvg.append("g")
                 .call(d3.axisLeft(yFocus));
 
-            var circles = focusSvg.selectAll("circle")
-                .data(focusData)
-                .enter().append("circle")
-                .attr("cx", function(d) { return xFocus(d.AverageCityMPG); })
-                .attr("cy", function(d) { return yFocus(d.AverageHighwayMPG); })
-                .attr("r", 3)
-                .attr("fill", "green")
-                .attr("class", "highlight");
+            focusSvg.append("text")
+                .attr("x", 5)
+                .attr("y", 200)
+                .attr("class", "annotation.visible")
+                .text("Low efficiency < 30 MPG");
+            
+            focusSvg.append("text")
+                .attr("x", 500)
+                .attr("y", 200)
+                .attr("class", "annotation.visible")
+                .text("High efficiency > 30MPG");
 
-            var annotations = focusSvg.selectAll(".annotation")
-                .data(focusData)
-                .enter().append("text")
-                .attr("class", "annotation")
-                .attr("x", function(d) { return xFocus(d.AverageCityMPG) + 10; })
-                .attr("y", function(d) { return yFocus(d.AverageHighwayMPG) - 10; })
-                .text(function(d) { return d.Make + ", " + d.Fuel + ", " + d.EngineCylinders + " cyl"; });
+            addCirclesAndAnnotations(focusSvg, focusData, xFocus, yFocus);
 
-            circles.on("mouseover", function(event, d) {
-                d3.select(this).transition().attr("r", 5);
-                d3.select(annotations.nodes()[focusData.indexOf(d)]).classed("visible", true);
-            }).on("mouseout", function(event, d) {
-                d3.select(this).transition().attr("r", 3);
-                d3.select(annotations.nodes()[focusData.indexOf(d)]).classed("visible", false);
-            });
+            addAxisLabels(focusSvg, width, height, "Average City MPG", "Average Highway MPG");
 
             // Conclusion Chart
-
             var conclusionSvg = d3.select(".conclusion svg")
                 .append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -165,37 +251,43 @@
             conclusionSvg.append("g")
                 .call(d3.axisLeft(yConclusion));
 
-            var updateConclusion = function() {
+            function updateConclusion() {
                 var cityMPGValue = +d3.select("#cityMPGRange").node().value;
                 var highwayMPGValue = +d3.select("#highwayMPGRange").node().value;
+                var fueltypevalue = d3.select("#fueltype").node().value;
+            //    console.log("s1", fueltypevalue);
 
                 d3.select("#cityMPGValue").text(cityMPGValue);
                 d3.select("#highwayMPGValue").text(highwayMPGValue);
-
+            //    d3.select("#fueltype").text(fueltypevalue);
+                
+                var fuelcondition = function(d) {
+                    if (fueltypevalue === "All") {
+                        return true;
+                    } else {
+                        return d.Fuel === fueltypevalue;
+                    }
+                };
+          
                 var filteredData = data.filter(function(d) {
-                    return d.AverageCityMPG >= cityMPGValue && d.AverageHighwayMPG >= highwayMPGValue;
+                    var citympg = d.AverageCityMPG >= cityMPGValue;
+                    var highwaympg = d.AverageHighwayMPG >= highwayMPGValue;
+                //    var fuel = d.Fuel === fueltypevalue;
+                    return fuelcondition(d) && citympg && highwaympg;
                 });
 
-                var circles = conclusionSvg.selectAll("circle")
-                    .data(filteredData);
+                conclusionSvg.selectAll("circle").remove();
+                conclusionSvg.selectAll(".annotation").remove();
 
-                circles.exit().remove();
-
-                circles.enter().append("circle")
-                    .merge(circles)
-                    .attr("cx", function(d) { return xConclusion(d.AverageCityMPG); })
-                    .attr("cy", function(d) { return yConclusion(d.AverageHighwayMPG); })
-                    .attr("r", 3)
-                    .attr("fill", function(d) {
-                        return d.AverageCityMPG > highEfficiencyThreshold ? "green" : "red";
-                    });
-            };
+                addCirclesAndAnnotations(conclusionSvg, filteredData, xConclusion, yConclusion);
+            }
 
             d3.select("#cityMPGRange").on("input", updateConclusion);
             d3.select("#highwayMPGRange").on("input", updateConclusion);
+            d3.select("#fueltype").on("input", updateConclusion);
 
-            updateConclusion(); // Initial call to set up the chart
-
+            addAxisLabels(conclusionSvg, width, height, "Average City MPG", "Average Highway MPG");
+            updateConclusion(); 
         });
     </script>
 </body>

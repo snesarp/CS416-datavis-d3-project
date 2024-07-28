@@ -66,9 +66,13 @@
             <input type="range" id="cityMPGRange" name="cityMPGRange" min="0" max="150" value="0" step="1">
             <span id="cityMPGValue">0</span>
 
-            <label for="highwayMPGRange">Highway MPG:</label>
+            <label for="highwayMPGRange">HWY MPG:</label>
             <input type="range" id="highwayMPGRange" name="highwayMPGRange" min="0" max="150" value="0" step="1">
             <span id="highwayMPGValue">0</span>
+
+            <label for="engineCylindersRange">Eng Cyl:</label>
+            <input type="range" id="engineCylindersRange" name="engineCylindersRange" min="0" max="12" value="0" step="1">
+            <span id="engineCylindersValue">0</span>
 
             <label for="fueltype">Fuel Type:</label>
             <select id="fueltype">
@@ -90,14 +94,13 @@
             document.querySelector('.overview').style.display = 'none';
             document.querySelector('.focus').style.display = 'none';
             document.querySelector('.conclusion').style.display = 'none';
-
             document.querySelector('.' + scene).style.display = 'block';
         }
 
         // Initially show the Overview scene
         showScene('overview');
 
-        var margin = {top: 20, right: 100, bottom: 50, left: 60},
+        var margin = {top: 20, right: 100, bottom: 40, left: 60},
             width = 800 - margin.left - margin.right,
             height = 400 - margin.top - margin.bottom;
 
@@ -113,7 +116,7 @@
             data.forEach(function(d) {
                 d.AverageCityMPG = +d.AverageCityMPG;
                 d.AverageHighwayMPG = +d.AverageHighwayMPG;
-                d.Cylinders = +d.EngineCylinders;
+                d.EngineCylinders = +d.EngineCylinders;
             });
 
             // Function to add circles and annotations
@@ -239,6 +242,7 @@
             focusSvg.append("g")
                 .call(d3.axisLeft(yFocus));
 
+            //Focus Annotations
             focusSvg.append("text")
                 .attr("x", 5)
                 .attr("y", 150)
@@ -323,14 +327,23 @@
                 .attr("dy", ".35em")
                 .text(function(d) { return d; });
 
+            //Conclusion Annotations
+            conclusionSvg.append("text")
+                .attr("x", 5)
+                .attr("y", -5)
+                .attr("class", "annotation.visible")
+                .text("Car Model Fuel Efficiency depends on Fuel type & Engine Cylinders. Select filters to explore.");
+
             function updateConclusion() {
                 var cityMPGValue = +d3.select("#cityMPGRange").node().value;
                 var highwayMPGValue = +d3.select("#highwayMPGRange").node().value;
+                var engineCylindersValue = +d3.select("#engineCylindersRange").node().value;
                 var fueltypevalue = d3.select("#fueltype").node().value;
-            //    console.log("s1", fueltypevalue);
+            //    console.log("EC", engineCylindersValue);
 
                 d3.select("#cityMPGValue").text(cityMPGValue);
                 d3.select("#highwayMPGValue").text(highwayMPGValue);
+                d3.select("#engineCylindersValue").text(engineCylindersValue);
             //    d3.select("#fueltype").text(fueltypevalue);
                 
                 var fuelcondition = function(d) {
@@ -344,18 +357,20 @@
                 var filteredData = data.filter(function(d) {
                     var citympg = d.AverageCityMPG >= cityMPGValue;
                     var highwaympg = d.AverageHighwayMPG >= highwayMPGValue;
+                    var engineCyl = d.EngineCylinders >= engineCylindersValue;
                 //    var fuel = d.Fuel === fueltypevalue;
-                    return fuelcondition(d) && citympg && highwaympg;
+                    return fuelcondition(d) && citympg && highwaympg && engineCyl;
                 });
-
+             
                 conclusionSvg.selectAll("circle").remove();
                 conclusionSvg.selectAll(".annotation").remove();
 
                 addCirclesAndAnnotations(conclusionSvg, filteredData, xConclusion, yConclusion);
             }
-
+            
             d3.select("#cityMPGRange").on("input", updateConclusion);
             d3.select("#highwayMPGRange").on("input", updateConclusion);
+            d3.select("#engineCylindersRange").on("input", updateConclusion);
             d3.select("#fueltype").on("input", updateConclusion);
 
             addAxisLabels(conclusionSvg, width, height, "Average City MPG", "Average Highway MPG");

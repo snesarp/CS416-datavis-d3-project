@@ -52,7 +52,7 @@
         </div>
     </div>
     <div class="focus">
-        <h2>Focus: Non Electric cars Performance </h2>
+        <h2>Focus: Non Electric Cars' Performance </h2>
         <svg width="800" height="400"></svg>
         <div class="button-container">
             <button class="button" onclick="showScene('overview')">Back</button>
@@ -247,13 +247,13 @@
                 .attr("x", 5)
                 .attr("y", 150)
                 .attr("class", "annotation.visible")
-                .text("Low efficiency < 30 MPG");
+                .text("Low Fuel efficiency < 30 MPG");
             
             focusSvg.append("text")
                 .attr("x", 500)
                 .attr("y", 150)
                 .attr("class", "annotation.visible")
-                .text("High efficiency > 30MPG");
+                .text("High Fuel efficiency > 30MPG");
 
             addCirclesAndAnnotations(focusSvg, focusData, xFocus, yFocus);
 
@@ -332,7 +332,7 @@
                 .attr("x", 5)
                 .attr("y", -5)
                 .attr("class", "annotation.visible")
-                .text("Car Model Fuel Efficiency depends on Fuel type & Engine Cylinders. Select filters to explore.");
+                .text("Fuel Efficiency of a Car depends on Fuel type & Engine Cylinders. Select filters to explore.");
 
             function updateConclusion() {
                 var cityMPGValue = +d3.select("#cityMPGRange").node().value;

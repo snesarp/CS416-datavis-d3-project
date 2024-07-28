@@ -45,7 +45,7 @@
 </head>
 <body>
     <div class="overview">
-        <h2>Overview: Average City vs. Highway MPG Across Manufacturers in 2017</h2>
+        <h2>Overview: Average City vs. Highway MPG across Car Models in 2017</h2>
         <svg width="800" height="400"></svg>
         <div class="button-container">
             <button class="button" onclick="showScene('focus')">Next</button>
@@ -193,6 +193,30 @@
 
             addAxisLabels(overviewSvg, width, height, "Average City MPG", "Average Highway MPG");
 
+            // Overview Legends
+            var legend = overviewSvg.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(650,20)");
+
+            var legendData = Object.keys(fuelcolor);
+
+            legend.selectAll("rect")
+                .data(legendData)
+                .enter().append("rect")
+                .attr("x", 0)
+                .attr("y", function(d, i) { return i * 15; })
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", function(d) { return fuelcolor[d]; });
+
+            legend.selectAll("text")
+                .data(legendData)
+                .enter().append("text")
+                .attr("x", 15)
+                .attr("y", function(d, i) { return i * 15 + 5; })
+                .attr("dy", ".35em")
+                .text(function(d) { return d; });
+
             // Focus Chart
             var focusData = data.filter(function(d) { return d.Fuel !== "Electricity"; });
 
@@ -217,19 +241,43 @@
 
             focusSvg.append("text")
                 .attr("x", 5)
-                .attr("y", 200)
+                .attr("y", 150)
                 .attr("class", "annotation.visible")
                 .text("Low efficiency < 30 MPG");
             
             focusSvg.append("text")
                 .attr("x", 500)
-                .attr("y", 200)
+                .attr("y", 150)
                 .attr("class", "annotation.visible")
                 .text("High efficiency > 30MPG");
 
             addCirclesAndAnnotations(focusSvg, focusData, xFocus, yFocus);
 
             addAxisLabels(focusSvg, width, height, "Average City MPG", "Average Highway MPG");
+
+            // Focus Legends
+            var focuslegend = focusSvg.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(650,20)");
+
+            var focuslegendData = ["Gasoline", "Diesel"];
+
+            focuslegend.selectAll("rect")
+                .data(focuslegendData)
+                .enter().append("rect")
+                .attr("x", 0)
+                .attr("y", function(d, i) { return i * 15; })
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", function(d) { return fuelcolor[d]; });
+
+            focuslegend.selectAll("text")
+                .data(focuslegendData)
+                .enter().append("text")
+                .attr("x", 15)
+                .attr("y", function(d, i) { return i * 15 + 5; })
+                .attr("dy", ".35em")
+                .text(function(d) { return d; });
 
             // Conclusion Chart
             var conclusionSvg = d3.select(".conclusion svg")
@@ -250,6 +298,30 @@
 
             conclusionSvg.append("g")
                 .call(d3.axisLeft(yConclusion));
+
+            // Overview Legends
+            var legend = conclusionSvg.append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(650,20)");
+
+            var legendData = Object.keys(fuelcolor);
+
+            legend.selectAll("rect")
+                .data(legendData)
+                .enter().append("rect")
+                .attr("x", 0)
+                .attr("y", function(d, i) { return i * 15; })
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", function(d) { return fuelcolor[d]; });
+
+            legend.selectAll("text")
+                .data(legendData)
+                .enter().append("text")
+                .attr("x", 15)
+                .attr("y", function(d, i) { return i * 15 + 5; })
+                .attr("dy", ".35em")
+                .text(function(d) { return d; });
 
             function updateConclusion() {
                 var cityMPGValue = +d3.select("#cityMPGRange").node().value;
